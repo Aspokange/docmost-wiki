@@ -19,4 +19,5 @@ variable "server_name" {
 variable "allowed_ssh_ip" {
   description = "IP allowed for SSH access"
   type        = string
+  default     = "0.0.0.0/0"
 }
