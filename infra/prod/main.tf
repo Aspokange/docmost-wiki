@@ -66,24 +66,30 @@ resource "aws_security_group" "docmost_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Environment = var.environment
+  }
 }
 
 # -------- EC2 --------
 resource "aws_instance" "docmost" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
+  key_name = "ci-cd-deploy-prod"
   vpc_security_group_ids = [aws_security_group.docmost_sg.id]
 
   user_data = <<-EOF
               #!/bin/bash
               apt update -y
-              apt install -y docker.io git
+              apt install -y docker.io git docker-compose-plugin
               usermod -aG docker ubuntu
               systemctl enable docker
               systemctl start docker
               EOF
 
   tags = {
-    Name = var.server_name
+    Name        = var.server_name
+    Environment = var.environment
   }
 }

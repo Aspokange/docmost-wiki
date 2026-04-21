@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write   # obligatoire pour OIDC
+      id-token: write
       contents: read
 
     steps:
@@ -31,21 +31,54 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init
-        run: terraform -chdir=infra init
+      # ---------------- DEV ----------------
+      - name: Terraform Init Dev
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev init
 
       - name: Terraform Plan Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra plan -var="allowed_ssh_ip=${{ secrets.ALLOWED_SSH_IP_DEV }}"
-
-      - name: Terraform Plan Prod
-        if: github.ref == 'refs/heads/main'
-        run: terraform -chdir=infra plan -var="allowed_ssh_ip=${{ secrets.ALLOWED_SSH_IP_PROD }}"
+        run: terraform -chdir=infra/dev plan 
 
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra apply -auto-approve -var="allowed_ssh_ip=${{ secrets.ALLOWED_SSH_IP_DEV }}"
+        run: terraform -chdir=infra/dev apply -auto-approve 
+      
+      - name: Deploy to Dev via SSH
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
+          chmod 600 key.pem
+
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ secrets.DEV_HOST }} \
+          "if [ ! -d docmost-wiki ]; then \
+            git clone https://github.com/Aspokange/docmost-wiki.git; \
+           fi && \
+           cd docmost-wiki && \
+           docker compose up -d --build"
+
+      # ---------------- PROD ----------------
+      - name: Terraform Init Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod init
+
+      - name: Terraform Plan Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod plan 
 
       - name: Terraform Apply Prod
         if: github.ref == 'refs/heads/main'
-        run: terraform -chdir=infra apply -auto-approve -var="allowed_ssh_ip=${{ secrets.ALLOWED_SSH_IP_PROD }}"
+        run: terraform -chdir=infra/prod apply -auto-approve
+
+      - name: Deploy to Prod via SSH
+        if: github.ref == 'refs/heads/main'
+        run: |
+         echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
+         chmod 600 key.pem
+
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ secrets.PROD_HOST }} \
+          "if [ ! -d docmost-wiki ]; then \
+            git clone https://github.com/Aspokange/docmost-wiki.git; \
+           fi && \
+           cd docmost-wiki && \
+           docker compose up -d --build"

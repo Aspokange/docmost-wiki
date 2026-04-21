@@ -16,8 +16,7 @@ variable "server_name" {
   default     = "docmost-server"
 }
 
-variable "allowed_ssh_ip" {
-  description = "IP allowed for SSH access"
+variable "environment" {
+  description = "Environment name"
   type        = string
-  default     = "0.0.0.0/0"
 }
