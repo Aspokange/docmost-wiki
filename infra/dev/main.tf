@@ -92,7 +92,7 @@ resource "aws_instance" "docmost" {
   user_data = <<-EOF
               #!/bin/bash
               apt update -y
-              apt install -y docker.io git docker-compose-plugin
+              apt install -y docker.io git
               usermod -aG docker ubuntu
               systemctl enable docker
               systemctl start docker
