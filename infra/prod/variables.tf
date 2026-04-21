@@ -19,4 +19,5 @@ variable "server_name" {
 variable "environment" {
   description = "Environment name"
   type        = string
+  default     = "prod"
 }
