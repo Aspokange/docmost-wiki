@@ -13,7 +13,7 @@ variable "instance_type" {
 variable "server_name" {
   description = "Name of the EC2 instance"
   type        = string
-  default     = "docmost-server"
+  default     = "docmost-server-prod"
 }
 
 variable "environment" {
