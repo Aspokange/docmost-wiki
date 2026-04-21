@@ -85,7 +85,10 @@ resource "aws_instance" "docmost" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
   key_name = "ci-cd-deploy-prod"
+  
   vpc_security_group_ids = [aws_security_group.docmost_sg.id]
+
+  user_data_replace_on_change = true 
 
   user_data = <<-EOF
               #!/bin/bash
@@ -95,6 +98,11 @@ resource "aws_instance" "docmost" {
               systemctl enable docker
               systemctl start docker
               EOF
+
+
+  lifecycle {
+   create_before_destroy = true
+}
 
   tags = {
     Name        = var.server_name
