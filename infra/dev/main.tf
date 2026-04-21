@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.2"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -6,7 +8,13 @@ terraform {
     }
   }
 
-  required_version = ">= 1.2"
+  backend "s3" {
+    bucket         = "docmost-terraform-state-nina"
+    key            = "dev/terraform.tfstate"
+    region         = "eu-west-3"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
