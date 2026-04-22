@@ -88,10 +88,18 @@ jobs:
           chmod 600 key.pem
 
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << 'EOF'
+            set -e
+
+            echo "✅ Checking Docker..."
+            docker --version
+            docker compose version
+
             if [ ! -d docmost-wiki ]; then
               git clone https://github.com/Aspokange/docmost-wiki.git
             fi
 
             cd docmost-wiki/app
+
+            echo "✅ Starting containers..."
             docker compose up -d --build
           EOF
