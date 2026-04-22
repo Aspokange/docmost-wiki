@@ -38,11 +38,11 @@ jobs:
 
       - name: Terraform Plan Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra/dev plan 
+        run: terraform -chdir=infra/dev plan
 
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra/dev apply -auto-approve 
+        run: terraform -chdir=infra/dev apply -auto-approve
 
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
@@ -54,12 +54,14 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) \
-          "if [ ! -d docmost-wiki ]; then \
-            git clone https://github.com/Aspokange/docmost-wiki.git; \
-           fi && \
-           cd docmost-wiki/app && \
-           docker compose up -d --build"
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << 'EOF'
+            if [ ! -d docmost-wiki ]; then
+              git clone https://github.com/Aspokange/docmost-wiki.git
+            fi
+
+            cd docmost-wiki/app
+            docker compose up -d --build
+          EOF
 
       # ---------------- PROD ----------------
       - name: Terraform Init Prod
@@ -68,7 +70,7 @@ jobs:
 
       - name: Terraform Plan Prod
         if: github.ref == 'refs/heads/main'
-        run: terraform -chdir=infra/prod plan 
+        run: terraform -chdir=infra/prod plan
 
       - name: Terraform Apply Prod
         if: github.ref == 'refs/heads/main'
@@ -84,9 +86,11 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) \
-          "if [ ! -d docmost-wiki ]; then \
-            git clone https://github.com/Aspokange/docmost-wiki.git; \
-           fi && \
-           cd docmost-wiki/app && \
-           docker compose up -d --build"
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << 'EOF'
+            if [ ! -d docmost-wiki ]; then
+              git clone https://github.com/Aspokange/docmost-wiki.git
+            fi
+
+            cd docmost-wiki/app
+            docker compose up -d --build
+          EOF
