@@ -13,7 +13,7 @@ terraform {
     key            = "prod/terraform.tfstate"
     region         = "eu-west-3"
     dynamodb_table = "terraform-locks"
-    encrypt        = true 
+    encrypt        = true
   }
 }
 
@@ -24,12 +24,18 @@ provider "aws" {
 # -------- AMI --------
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"]
   }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
 
 # -------- VPC --------
 data "aws_vpc" "default" {
@@ -87,7 +93,6 @@ resource "aws_instance" "docmost" {
   associate_public_ip_address = true
   user_data_replace_on_change = true
 
-  # 🔐 IMDSv2 only (sécurité AWS)
   metadata_options {
     http_tokens = "required"
   }
@@ -96,36 +101,29 @@ resource "aws_instance" "docmost" {
 #!/bin/bash
 set -e
 
-# Update system
 apt update -y
 apt install -y ca-certificates curl gnupg git
 
-# Add Docker official GPG key
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
   gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
 chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Add Docker repository
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
   https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Install Docker Engine + Compose v2
 apt update -y
 apt install -y docker-ce docker-ce-cli containerd.io \
   docker-buildx-plugin docker-compose-plugin
 
-# Enable and start Docker
 systemctl enable docker
 systemctl start docker
 
-# Allow ubuntu user to run docker
 usermod -aG docker ubuntu
-
 EOF
 
   lifecycle {
