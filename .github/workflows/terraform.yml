@@ -54,7 +54,7 @@ jobs:
           "if [ ! -d docmost-wiki ]; then \
             git clone https://github.com/Aspokange/docmost-wiki.git; \
            fi && \
-           cd docmost-wiki && \
+           cd docmost-wiki/app && \
            docker-compose up -d --build"
 
       # ---------------- PROD ----------------
@@ -80,5 +80,5 @@ jobs:
           "if [ ! -d docmost-wiki ]; then \
             git clone https://github.com/Aspokange/docmost-wiki.git; \
            fi && \
-           cd docmost-wiki && \
+           cd docmost-wiki/app && \
            docker-compose up -d --build"
