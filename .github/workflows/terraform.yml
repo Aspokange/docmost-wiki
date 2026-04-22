@@ -46,7 +46,7 @@ jobs:
 
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
-        run: sleep 30  
+        run: sleep 120  
 
       - name: Deploy to Dev via SSH
         if: github.ref == 'refs/heads/dev'
@@ -76,7 +76,7 @@ jobs:
 
       - name: Wait for SSH (Prod)
         if: github.ref == 'refs/heads/main'
-        run: sleep 30
+        run: sleep 120
 
       - name: Deploy to Prod via SSH
         if: github.ref == 'refs/heads/main'
