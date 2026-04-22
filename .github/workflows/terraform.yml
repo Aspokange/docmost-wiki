@@ -59,7 +59,7 @@ jobs:
             git clone https://github.com/Aspokange/docmost-wiki.git; \
            fi && \
            cd docmost-wiki/app && \
-           docker-compose up -d --build"
+           docker compose up -d --build"
 
       # ---------------- PROD ----------------
       - name: Terraform Init Prod
@@ -89,4 +89,4 @@ jobs:
             git clone https://github.com/Aspokange/docmost-wiki.git; \
            fi && \
            cd docmost-wiki/app && \
-           docker-compose up -d --build"
+           docker compose up -d --build"

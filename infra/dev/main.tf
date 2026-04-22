@@ -82,25 +82,57 @@ resource "aws_security_group" "docmost_sg" {
 
 # -------- EC2 --------
 resource "aws_instance" "docmost" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
-  key_name = "ci-cd-deploy-dev"
-  vpc_security_group_ids = [aws_security_group.docmost_sg.id]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type
+  key_name                    = "ci-cd-deploy-dev"
+  vpc_security_group_ids      = [aws_security_group.docmost_sg.id]
   associate_public_ip_address = true
   user_data_replace_on_change = true
 
+  # 🔐 IMDSv2 only (sécurité AWS)
+  metadata_options {
+    http_tokens = "required"
+  }
+
   user_data = <<-EOF
-              #!/bin/bash
-              apt update -y
-              apt install -y docker.io git docker-compose ansible
-              usermod -aG docker ubuntu
-              systemctl enable docker
-              systemctl start docker
-              EOF
+#!/bin/bash
+set -e
+
+# Update system
+apt update -y
+apt install -y ca-certificates curl gnupg git
+
+# Add Docker official GPG key
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Add Docker repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine + Compose v2
+apt update -y
+apt install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+
+# Enable and start Docker
+systemctl enable docker
+systemctl start docker
+
+# Allow ubuntu user to run docker
+usermod -aG docker ubuntu
+
+EOF
 
   lifecycle {
-   create_before_destroy = true
-}
+    create_before_destroy = true
+  }
 
   tags = {
     Name        = var.server_name
