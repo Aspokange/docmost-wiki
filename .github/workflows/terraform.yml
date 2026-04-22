@@ -43,19 +43,23 @@ jobs:
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev apply -auto-approve 
-      
+
+      - name: Wait for SSH (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: sleep 30  
+
       - name: Deploy to Dev via SSH
         if: github.ref == 'refs/heads/dev'
         run: |
           echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ secrets.DEV_HOST }} \
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) \
           "if [ ! -d docmost-wiki ]; then \
             git clone https://github.com/Aspokange/docmost-wiki.git; \
            fi && \
            cd docmost-wiki/app && \
-           docker-compose up -d --build"
+           docker compose up -d --build"
 
       # ---------------- PROD ----------------
       - name: Terraform Init Prod
@@ -70,15 +74,19 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: terraform -chdir=infra/prod apply -auto-approve
 
+      - name: Wait for SSH (Prod)
+        if: github.ref == 'refs/heads/main'
+        run: sleep 30
+
       - name: Deploy to Prod via SSH
         if: github.ref == 'refs/heads/main'
         run: |
-         echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
-         chmod 600 key.pem
+          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
+          chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ secrets.PROD_HOST }} \
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) \
           "if [ ! -d docmost-wiki ]; then \
             git clone https://github.com/Aspokange/docmost-wiki.git; \
            fi && \
            cd docmost-wiki/app && \
-           docker-compose up -d --build"
+           docker compose up -d --build"
