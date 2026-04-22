@@ -96,6 +96,7 @@ resource "aws_instance" "docmost" {
 
   user_data = <<-EOF
 #!/bin/bash
+# force recreate
 set -e
 
 # Update system
