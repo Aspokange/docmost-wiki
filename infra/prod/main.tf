@@ -1,0 +1,111 @@
+terraform {
+  required_version = ">= 1.2"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.92"
+    }
+  }
+
+  backend "s3" {
+    bucket         = "docmost-terraform-state-nina"
+    key            = "dev/terraform.tfstate"
+    region         = "eu-west-3"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
+}
+
+provider "aws" {
+  region = var.region
+}
+
+# -------- AMI --------
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+  }
+
+  owners = ["099720109477"]
+}
+
+# -------- VPC --------
+data "aws_vpc" "default" {
+  default = true
+}
+
+# -------- Security Group --------
+resource "aws_security_group" "docmost_sg" {
+  name        = "${var.server_name}-sg"
+  description = "Allow HTTP, HTTPS and SSH"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "SSH restricted"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ssh_ip]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# -------- EC2 --------
+resource "aws_instance" "docmost" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  key_name = "ci-cd-deploy-prod"
+  
+  vpc_security_group_ids = [aws_security_group.docmost_sg.id]
+
+  user_data_replace_on_change = true 
+
+  user_data = <<-EOF
+              #!/bin/bash
+              apt update -y
+              apt install -y docker.io git docker-compose ansible
+              usermod -aG docker ubuntu
+              systemctl enable docker
+              systemctl start docker
+              EOF
+
+
+  lifecycle {
+   create_before_destroy = true
+}
+
+  tags = {
+    Name        = var.server_name
+    Environment = var.environment
+  }
+}

@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.2"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -6,7 +8,13 @@ terraform {
     }
   }
 
-  required_version = ">= 1.2"
+  backend "s3" {
+    bucket         = "docmost-terraform-state-nina"
+    key            = "dev/terraform.tfstate"
+    region         = "eu-west-3"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
@@ -57,7 +65,7 @@ resource "aws_security_group" "docmost_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_ip]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -66,24 +74,36 @@ resource "aws_security_group" "docmost_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Environment = var.environment
+  }
 }
 
 # -------- EC2 --------
 resource "aws_instance" "docmost" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
+  key_name = "ci-cd-deploy-dev"
   vpc_security_group_ids = [aws_security_group.docmost_sg.id]
+
+  user_data_replace_on_change = true 
 
   user_data = <<-EOF
               #!/bin/bash
               apt update -y
-              apt install -y docker.io git
+              apt install -y docker.io git docker-compose ansible
               usermod -aG docker ubuntu
               systemctl enable docker
               systemctl start docker
               EOF
 
+  lifecycle {
+   create_before_destroy = true
+}
+
   tags = {
-    Name = var.server_name
+    Name        = var.server_name
+    Environment = var.environment
   }
 }
