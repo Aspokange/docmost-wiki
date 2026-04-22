@@ -10,7 +10,7 @@ terraform {
 
   backend "s3" {
     bucket         = "docmost-terraform-state-nina"
-    key            = "dev/terraform.tfstate"
+    key            = "prod/terraform.tfstate"
     region         = "eu-west-3"
     dynamodb_table = "terraform-locks"
     encrypt        = true
@@ -61,11 +61,11 @@ resource "aws_security_group" "docmost_sg" {
   }
 
   ingress {
-    description = "SSH restricted"
+    description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_ip]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -85,9 +85,8 @@ resource "aws_instance" "docmost" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
   key_name = "ci-cd-deploy-prod"
-  
   vpc_security_group_ids = [aws_security_group.docmost_sg.id]
-
+  associate_public_ip_address = true
   user_data_replace_on_change = true 
 
   user_data = <<-EOF
