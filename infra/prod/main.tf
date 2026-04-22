@@ -94,22 +94,40 @@ resource "aws_instance" "docmost" {
 
   user_data = <<-EOF
 #!/bin/bash
-set -ex
+set -e
 
-# Attendre que le réseau soit prêt
-sleep 20
+# Update system
+apt update -y
+apt install -y ca-certificates curl gnupg git
 
-apt-get update -y
-apt-get install -y docker.io docker-compose
+# Add Docker official GPG key
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
+chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Add Docker repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine + Compose v2
+apt update -y
+apt install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+
+# Enable and start Docker
 systemctl enable docker
 systemctl start docker
 
+# Allow ubuntu user to run docker
 usermod -aG docker ubuntu
 
-# Log pour debug
-docker --version > /home/ubuntu/docker-installed.txt
 EOF
+
   lifecycle {
     create_before_destroy = true
   }
