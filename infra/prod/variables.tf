@@ -21,3 +21,8 @@ variable "environment" {
   type        = string
   default     = "prod"
 }
+
+variable "allowed_ssh_ip" {
+  description = "Allowed IP for SSH access"
+  type        = string
+}
