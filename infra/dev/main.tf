@@ -93,7 +93,10 @@ resource "aws_instance" "docmost" {
   associate_public_ip_address = true
   user_data_replace_on_change = true
 
-  # 🔐 IMDSv2 only (sécurité AWS)
+  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
+
+
+  # IMDSv2 only (sécurité AWS)
   metadata_options {
     http_tokens = "required"
   }
@@ -104,7 +107,7 @@ set -e
 
 # Update system
 apt update -y
-apt install -y ca-certificates curl gnupg git
+apt install -y ca-certificates curl gnupg git awscli
 
 # Add Docker official GPG key
 install -m 0755 -d /etc/apt/keyrings
