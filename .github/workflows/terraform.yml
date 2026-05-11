@@ -119,3 +119,5 @@ jobs:
            fi && \
            cd docmost-wiki/app && \
            docker compose up -d --build"
+
+      # ---------------- GO ----------------
