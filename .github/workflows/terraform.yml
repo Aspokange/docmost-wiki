@@ -77,6 +77,126 @@ jobs:
             cd docmost-wiki/app
 
             cat <<EOT > .env
+APP_SECRET=$APP_SECRET
+DOCMOST_DB_USER=$DOCMOST_DB_USER
+DOCMOST_DB_PASSWORD=$DOCMOST_DB_PASSWORD
+DOCMOST_DB_NAME=$DOCMOST_DB_NAME
+DATABASE_URL=$DATABASE_URL
+NEXTAUTH_URL=$NEXTAUTH_URL
+APP_URL=$APP_URL
+REDIS_URL=$REDIS_URL
+EOT
+
+            docker compose up -d --build
+          EOF
+
+      # ---------------- PROD ----------------
+      - name: Terraform Init Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod init
+
+      - name: Terraform Plan Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod plan
+
+      - name: Terraform Apply Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod apply -auto-approve
+
+      - name: Wait for SSH (Prod)
+        if: github.ref == 'refs/heads/main'
+        run: sleep 60
+
+      - name: Deploy to Prod via SSH
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
+          chmod 600 key.pem
+
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) \
+          "if [ ! -d docmost-wiki ]; then \
+            git clone https://github.com/Aspokange/docmost-wiki.git; \
+           fi && \
+           cd docmost-wiki/app && \
+           docker compose up -d --build"name: Terraform Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - "infra/**"
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && 'arn:aws:iam::682135518833:role/Docmost-GitHub-Role' || 'arn:aws:iam::682135518833:role/Docmost-GitHub-Dev-Role' }}
+          aws-region: eu-west-3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # ---------------- DEV ----------------
+      - name: Terraform Init Dev
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev init
+
+      - name: Terraform Plan Dev
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev plan
+
+      - name: Terraform Apply Dev
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev apply -auto-approve
+
+      - name: Wait for SSH (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: sleep 60
+
+      - name: Deploy to Dev via SSH
+        if: github.ref == 'refs/heads/dev'
+        env:
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+          DOCMOST_DB_USER: ${{ secrets.DOCMOST_DB_USER }}
+          DOCMOST_DB_PASSWORD: ${{ secrets.DOCMOST_DB_PASSWORD }}
+          DOCMOST_DB_NAME: ${{ secrets.DOCMOST_DB_NAME }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
+          chmod 600 key.pem
+
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
+            set -e
+
+            if [ ! -d docmost-wiki ]; then
+              git clone https://github.com/Aspokange/docmost-wiki.git
+            else
+              cd docmost-wiki
+              git pull
+              cd ..
+            fi
+
+            cd docmost-wiki/app
+
+            cat <<EOT > .env
             APP_SECRET=$APP_SECRET
             DOCMOST_DB_USER=$DOCMOST_DB_USER
             DOCMOST_DB_PASSWORD=$DOCMOST_DB_PASSWORD
@@ -119,5 +239,3 @@ jobs:
            fi && \
            cd docmost-wiki/app && \
            docker compose up -d --build"
-
-      # ---------------- GO ----------------
