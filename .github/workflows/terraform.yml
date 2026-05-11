@@ -12,7 +12,6 @@ on:
 
 jobs:
   terraform:
-    name: Terraform
     runs-on: ubuntu-latest
 
     permissions:
@@ -23,7 +22,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # AWS OIDC
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -33,8 +31,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # ======================= DEV ===============================
-
+      # ---------------- DEV ---------------
       - name: Terraform Init Dev
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev init
@@ -47,57 +44,45 @@ jobs:
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev apply -auto-approve
 
-      - name: Get Dev Public IP
-        if: github.ref == 'refs/heads/dev'
-        id: dev_ip
-        run: echo "IP=$(terraform -chdir=infra/dev output -raw public_ip)" >> $GITHUB_OUTPUT
-
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
         run: sleep 60
 
       - name: Deploy to Dev via SSH
         if: github.ref == 'refs/heads/dev'
+        env:
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+          DOCMOST_DB_USER: ${{ secrets.DOCMOST_DB_USER }}
+          DOCMOST_DB_PASSWORD: ${{ secrets.DOCMOST_DB_PASSWORD }}
+          DOCMOST_DB_NAME: ${{ secrets.DOCMOST_DB_NAME }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
         run: |
-          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
+          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ steps.dev_ip.outputs.IP }} << EOF
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << EOF
             set -e
+            cd docmost-wiki/app || exit 1
 
-            echo "Checking Docker..."
-            docker --version
-            docker compose version                  
-
-            if [ ! -d docmost-wiki ]; then
-              git clone https://github.com/Aspokange/docmost-wiki.git
-            else
-              cd docmost-wiki
-              git pull
-              cd ..
-            fi
-
-            cd docmost-wiki/app
-
-            echo "Creating .env file..."
-            cat <<EOT > .env
-              APP_SECRET=${{ secrets.APP_SECRET }}
-              DOCMOST_DB_USER=${{ secrets.DOCMOST_DB_USER }}
-              DOCMOST_DB_PASSWORD=${{ secrets.DOCMOST_DB_PASSWORD }}
-              DOCMOST_DB_NAME=${{ secrets.DOCMOST_DB_NAME }}
-              DATABASE_URL=${{ secrets.DATABASE_URL }}
-              NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
-              APP_URL=${{ secrets.APP_URL }}
-              REDIS_URL=${{ secrets.REDIS_URL }}
-              EOT
-
-            echo "Starting containers..."
+            printf "APP_SECRET=%s\nDOCMOST_DB_USER=%s\nDOCMOST_DB_PASSWORD=%s\nDOCMOST_DB_NAME=%s\nDATABASE_URL=%s\nNEXTAUTH_URL=%s\nAPP_URL=%s\nREDIS_URL=%s\nDOCMOST_APP_PORT=%s\n" \
+            "$APP_SECRET" \
+            "$DOCMOST_DB_USER" \
+            "$DOCMOST_DB_PASSWORD" \
+            "$DOCMOST_DB_NAME" \
+            "$DATABASE_URL" \
+            "$NEXTAUTH_URL" \
+            "$APP_URL" \
+            "$REDIS_URL" \
+            "$DOCMOST_APP_PORT" > .env
 
             docker compose up -d --build
           EOF
 
-      # ======================= PROD ==============================
-
+      # ---------------- Prod ---------------
       - name: Terraform Init Prod
         if: github.ref == 'refs/heads/main'
         run: terraform -chdir=infra/prod init
@@ -110,51 +95,40 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: terraform -chdir=infra/prod apply -auto-approve
 
-      - name: Get Prod Public IP
-        if: github.ref == 'refs/heads/main'
-        id: prod_ip
-        run: echo "IP=$(terraform -chdir=infra/prod output -raw public_ip)" >> $GITHUB_OUTPUT
-
       - name: Wait for SSH (Prod)
         if: github.ref == 'refs/heads/main'
         run: sleep 60
 
       - name: Deploy to Prod via SSH
         if: github.ref == 'refs/heads/main'
+        env:
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+          DOCMOST_DB_USER: ${{ secrets.DOCMOST_DB_USER }}
+          DOCMOST_DB_PASSWORD: ${{ secrets.DOCMOST_DB_PASSWORD }}
+          DOCMOST_DB_NAME: ${{ secrets.DOCMOST_DB_NAME }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
         run: |
-          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
+          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ steps.prod_ip.outputs.IP }} << EOF
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
             set -e
+            cd docmost-wiki/app || exit 1
 
-            echo "Checking Docker..."
-            docker --version
-            docker compose version            
-
-            if [ ! -d docmost-wiki ]; then
-              git clone https://github.com/Aspokange/docmost-wiki.git
-            else
-              cd docmost-wiki
-              git pull
-              cd ..
-            fi            
-
-            cd docmost-wiki/app
-
-            echo "Creating .env file..."
-            cat <<EOT > .env
-              APP_SECRET=${{ secrets.APP_SECRET }}
-              DOCMOST_DB_USER=${{ secrets.DOCMOST_DB_USER }}
-              DOCMOST_DB_PASSWORD=${{ secrets.DOCMOST_DB_PASSWORD }}
-              DOCMOST_DB_NAME=${{ secrets.DOCMOST_DB_NAME }}
-              DATABASE_URL=${{ secrets.DATABASE_URL }}
-              NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
-              APP_URL=${{ secrets.APP_URL }}
-              REDIS_URL=${{ secrets.REDIS_URL }}
-              EOT
-
-            echo "Starting containers..."
+            printf "APP_SECRET=%s\nDOCMOST_DB_USER=%s\nDOCMOST_DB_PASSWORD=%s\nDOCMOST_DB_NAME=%s\nDATABASE_URL=%s\nNEXTAUTH_URL=%s\nAPP_URL=%s\nREDIS_URL=%s\nDOCMOST_APP_PORT=%s\n" \
+            "$APP_SECRET" \
+            "$DOCMOST_DB_USER" \
+            "$DOCMOST_DB_PASSWORD" \
+            "$DOCMOST_DB_NAME" \
+            "$DATABASE_URL" \
+            "$NEXTAUTH_URL" \
+            "$APP_URL" \
+            "$REDIS_URL" \
+            "$DOCMOST_APP_PORT" > .env
 
             docker compose up -d --build
           EOF
