@@ -34,7 +34,7 @@ jobs:
       # ---------------- DEV ---------------
       - name: Terraform Init Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra/dev init
+        run: terraform -chdir=infra/dev init -reconfigure
 
       - name: Terraform Plan Dev
         if: github.ref == 'refs/heads/dev'
@@ -61,7 +61,7 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
           DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
         run: |
-         terraform -chdir=infra/dev init
+         terraform -chdir=infra/dev init -reconfigure
          terraform -chdir=infra/dev apply -auto-approve
 
          DEV_IP=$(terraform -chdir=infra/dev output -raw public_ip)
@@ -69,7 +69,7 @@ jobs:
          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << EOF
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
             set -e
             cd docmost-wiki/app || exit 1
 
@@ -90,7 +90,7 @@ jobs:
       # ---------------- Prod ---------------
       - name: Terraform Init Prod
         if: github.ref == 'refs/heads/main'
-        run: terraform -chdir=infra/prod init
+        run: terraform -chdir=infra/prod init -reconfigure
 
       - name: Terraform Plan Prod
         if: github.ref == 'refs/heads/main'
@@ -117,7 +117,7 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
           DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
         run: |
-         terraform -chdir=infra/prod init
+         terraform -chdir=infra/prod init -reconfigure
          terraform -chdir=infra/prod apply -auto-approve
 
          PROD_IP=$(terraform -chdir=infra/prod output -raw public_ip)
@@ -126,7 +126,7 @@ jobs:
          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << EOF
             set -e
             cd docmost-wiki/app || exit 1
 
