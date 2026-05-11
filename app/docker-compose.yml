@@ -31,3 +31,5 @@ services:
 
 volumes:
   postgres_data:
+
+        # ----------------- DEV ----------------
