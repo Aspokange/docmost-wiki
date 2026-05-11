@@ -30,7 +30,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # ---------------- DEV ----------------
+      # ----------------- DEV ----------------
       - name: Terraform Init Dev
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev init
@@ -79,7 +79,7 @@ jobs:
             docker compose up -d --build
           EOF
 
-      # ---------------- DEV ----------------
+      # ----------------- DEV -----------------
       - name: Terraform Init Prod
         if: github.ref == 'refs/heads/main'
         run: terraform -chdir=infra/prod init
