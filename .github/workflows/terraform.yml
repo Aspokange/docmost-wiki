@@ -38,27 +38,27 @@ jobs:
 
       - name: Terraform Plan Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra/dev plan 
+        run: terraform -chdir=infra/dev plan
 
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra/dev apply -auto-approve 
+        run: terraform -chdir=infra/dev apply -auto-approve
 
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
-        run: sleep 60  
+        run: sleep 60
 
       - name: Deploy to Dev via SSH
         if: github.ref == 'refs/heads/dev'
-         env:
-            APP_SECRET: ${{ secrets.APP_SECRET }}
-            DOCMOST_DB_USER: ${{ secrets.DOCMOST_DB_USER }}
-            DOCMOST_DB_PASSWORD: ${{ secrets.DOCMOST_DB_PASSWORD }}
-            DOCMOST_DB_NAME: ${{ secrets.DOCMOST_DB_NAME }}
-            DATABASE_URL: ${{ secrets.DATABASE_URL }}
-            NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-            APP_URL: ${{ secrets.APP_URL }}
-            REDIS_URL: ${{ secrets.REDIS_URL }}
+        env:
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+          DOCMOST_DB_USER: ${{ secrets.DOCMOST_DB_USER }}
+          DOCMOST_DB_PASSWORD: ${{ secrets.DOCMOST_DB_PASSWORD }}
+          DOCMOST_DB_NAME: ${{ secrets.DOCMOST_DB_NAME }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
         run: |
           echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
@@ -87,9 +87,6 @@ APP_URL=$APP_URL
 REDIS_URL=$REDIS_URL
 EOT
 
-            echo ".env created"
-            cat .env
-
             docker compose up -d --build
           EOF
 
@@ -100,7 +97,7 @@ EOT
 
       - name: Terraform Plan Prod
         if: github.ref == 'refs/heads/main'
-        run: terraform -chdir=infra/prod plan 
+        run: terraform -chdir=infra/prod plan
 
       - name: Terraform Apply Prod
         if: github.ref == 'refs/heads/main'
