@@ -119,3 +119,5 @@ EOT
            fi && \
            cd docmost-wiki/app && \
            docker compose up -d --build"
+
+        # ---------------- Deploy ----------------   
