@@ -46,7 +46,7 @@ jobs:
 
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
-        run: sleep 120  
+        run: sleep 60  
 
       - name: Deploy to Dev via SSH
         if: github.ref == 'refs/heads/dev'
@@ -54,12 +54,35 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) \
-          "if [ ! -d docmost-wiki ]; then \
-            git clone https://github.com/Aspokange/docmost-wiki.git; \
-           fi && \
-           cd docmost-wiki/app && \
-           docker compose up -d --build"
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
+            set -e
+
+            if [ ! -d docmost-wiki ]; then
+              git clone https://github.com/Aspokange/docmost-wiki.git
+            else
+              cd docmost-wiki
+              git pull
+              cd ..
+            fi
+
+            cd docmost-wiki/app
+
+            cat <<EOT > .env
+APP_SECRET=${{ secrets.APP_SECRET }}
+DOCMOST_DB_USER=${{ secrets.DOCMOST_DB_USER }}
+DOCMOST_DB_PASSWORD=${{ secrets.DOCMOST_DB_PASSWORD }}
+DOCMOST_DB_NAME=${{ secrets.DOCMOST_DB_NAME }}
+DATABASE_URL=${{ secrets.DATABASE_URL }}
+NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+APP_URL=${{ secrets.APP_URL }}
+REDIS_URL=${{ secrets.REDIS_URL }}
+EOT
+
+            echo ".env created"
+            cat .env
+
+            docker compose up -d --build
+          EOF
 
       # ---------------- PROD ----------------
       - name: Terraform Init Prod
@@ -76,7 +99,7 @@ jobs:
 
       - name: Wait for SSH (Prod)
         if: github.ref == 'refs/heads/main'
-        run: sleep 120
+        run: sleep 60
 
       - name: Deploy to Prod via SSH
         if: github.ref == 'refs/heads/main'
