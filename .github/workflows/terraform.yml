@@ -61,7 +61,12 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
           DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
         run: |
-          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
+         terraform -chdir=infra/dev init
+         terraform -chdir=infra/dev apply -auto-approve
+
+         DEV_IP=$(terraform -chdir=infra/dev output -raw public_ip)
+
+         echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
 
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << EOF
@@ -112,7 +117,13 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
           DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
         run: |
-          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
+         terraform -chdir=infra/prod init
+         terraform -chdir=infra/prod apply -auto-approve
+
+         PROD_IP=$(terraform -chdir=infra/prod output -raw public_ip)
+    
+          
+         echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
           chmod 600 key.pem
 
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
