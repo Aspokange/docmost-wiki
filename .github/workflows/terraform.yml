@@ -77,15 +77,15 @@ jobs:
             cd docmost-wiki/app
 
             cat <<EOT > .env
-APP_SECRET=$APP_SECRET
-DOCMOST_DB_USER=$DOCMOST_DB_USER
-DOCMOST_DB_PASSWORD=$DOCMOST_DB_PASSWORD
-DOCMOST_DB_NAME=$DOCMOST_DB_NAME
-DATABASE_URL=$DATABASE_URL
-NEXTAUTH_URL=$NEXTAUTH_URL
-APP_URL=$APP_URL
-REDIS_URL=$REDIS_URL
-EOT
+            APP_SECRET=$APP_SECRET
+            DOCMOST_DB_USER=$DOCMOST_DB_USER
+            DOCMOST_DB_PASSWORD=$DOCMOST_DB_PASSWORD
+            DOCMOST_DB_NAME=$DOCMOST_DB_NAME
+            DATABASE_URL=$DATABASE_URL
+            NEXTAUTH_URL=$NEXTAUTH_URL
+            APP_URL=$APP_URL
+            REDIS_URL=$REDIS_URL
+            EOT
 
             docker compose up -d --build
           EOF
@@ -118,7 +118,7 @@ EOT
             git clone https://github.com/Aspokange/docmost-wiki.git; \
            fi && \
            cd docmost-wiki/app && \
-           docker compose up -d --build"name: Terraform Infrastructure
+           docker compose up -d --build
 
 on:
   push:
