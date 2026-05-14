@@ -25,6 +25,11 @@
       args:
         executable: /bin/bash
 
+    - name: Wait for SSH to come back
+      wait_for_connection:
+        delay: 10
+        timeout: 120
+
     - name: Install Docker Compose plugin
       apt:
         name: docker-compose-plugin
