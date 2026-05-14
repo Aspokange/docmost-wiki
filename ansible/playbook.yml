@@ -1,0 +1,66 @@
+- hosts: web
+  become: true
+
+  vars:
+    app_path: /home/ubuntu/docmost-wiki/app
+    backup_path: /home/ubuntu/backup
+
+  tasks:
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose-plugin
+          - awscli
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker is running
+      systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Create backup directory
+      file:
+        path: "{{ backup_path }}"
+        state: directory
+        owner: ubuntu
+        mode: '0755'
+
+    - name: Create backup script
+      copy:
+        dest: "{{ backup_path }}/backup.sh"
+        mode: '0755'
+        owner: ubuntu
+        content: |
+          #!/bin/bash
+          set -e
+          DATE=$(date +%Y-%m-%d_%H-%M-%S)
+          FILE="docmost_${DATE}.sql"
+          docker exec docmost-db pg_dump -U {{ docmost_db_user }} {{ docmost_db_name }} > /tmp/$FILE
+          aws s3 cp /tmp/$FILE {{ s3_bucket }}
+          rm /tmp/$FILE
+
+    - name: Configure cron backup
+      cron:
+        name: "Docmost Backup"
+        minute: "0"
+        hour: "2"
+        user: ubuntu
+        job: "{{ backup_path }}/backup.sh >> /home/ubuntu/backup.log 2>&1"
+
+    - name: Deploy application
+      become: false
+      shell: |
+        cd {{ app_path }}
+        docker compose up -d --build
+      args:
+        executable: /bin/bash

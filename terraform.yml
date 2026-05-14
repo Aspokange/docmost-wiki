@@ -1,0 +1,124 @@
+name: Terraform Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - "infra/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && 'arn:aws:iam::682135518833:role/Docmost-GitHub-Role' || 'arn:aws:iam::682135518833:role/Docmost-GitHub-Dev-Role' }}
+          aws-region: eu-west-3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # ---------------- DEV ---------------
+
+      - name: Terraform Init Dev
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev init
+
+      - name: Terraform Plan Dev
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev plan
+
+      - name: Terraform Apply Dev
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev apply -auto-approve
+
+      - name: Wait for SSH (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: sleep 60
+
+      # -------- ANSIBLE DEV --------
+
+      - name: Create Ansible inventory (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          mkdir -p ansible
+          echo "[web]" > ansible/inventory.ini
+          echo "$(terraform -chdir=infra/dev output -raw public_ip)" >> ansible/inventory.ini
+
+      - name: Install Ansible (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Run Ansible Playbook (Dev)
+        if: github.ref == 'refs/heads/dev'
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
+          chmod 600 key.pem
+
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+            --private-key key.pem \
+            -u ubuntu \
+            --extra-vars "docmost_db_user=${{ secrets.DOCMOST_DB_USER }} docmost_db_name=${{ secrets.DOCMOST_DB_NAME }} s3_bucket=s3://docmost-backups-dev-682135518833/"
+
+      # ---------------- PROD ---------------
+
+      - name: Terraform Init Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod init
+
+      - name: Terraform Plan Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod plan
+
+      - name: Terraform Apply Prod
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod apply -auto-approve
+
+      - name: Wait for SSH (Prod)
+        if: github.ref == 'refs/heads/main'
+        run: sleep 60
+
+      # -------- ANSIBLE PROD --------
+
+      - name: Create Ansible inventory (Prod)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p ansible
+          echo "[web]" > ansible/inventory.ini
+          echo "$(terraform -chdir=infra/prod output -raw public_ip)" >> ansible/inventory.ini
+
+      - name: Install Ansible (Prod)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Run Ansible Playbook (Prod)
+        if: github.ref == 'refs/heads/main'
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
+          chmod 600 key.pem
+
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+            --private-key key.pem \
+            -u ubuntu \
+            --extra-vars "docmost_db_user=${{ secrets.DOCMOST_DB_USER }} docmost_db_name=${{ secrets.DOCMOST_DB_NAME }} s3_bucket=s3://docmost-backups-prod-682135518833/"
