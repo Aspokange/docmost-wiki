@@ -95,7 +95,7 @@
       cron:
         name: "Docmost Backup"
         minute: "0"
-        hour: "2"
+        hour: "19"
         user: ubuntu
         job: "{{ backup_path }}/backup.sh >> /home/ubuntu/backup.log 2>&1"
 
