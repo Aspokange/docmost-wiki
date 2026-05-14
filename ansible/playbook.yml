@@ -4,18 +4,30 @@
   vars:
     app_path: /home/ubuntu/docmost-wiki/app
     backup_path: /home/ubuntu/backup
-    branch_name: main   # valeur par défaut (sera écrasée par GitHub)
+    branch_name: main
 
   tasks:
 
-    - name: Install required packages
+    - name: Install required base packages
       apt:
         name:
-          - docker.io
-          - docker-compose-plugin
           - git
+          - curl
+          - snapd
         state: present
         update_cache: yes
+
+    - name: Install Docker using official script
+      shell: |
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sh get-docker.sh
+      args:
+        executable: /bin/bash
+
+    - name: Install Docker Compose plugin
+      apt:
+        name: docker-compose-plugin
+        state: present
 
     - name: Install AWS CLI via snap
       snap:
@@ -30,11 +42,90 @@
         force: yes
         update: yes
 
-    - name: Ensure Docker is running
-      systemd:
-        name: docker
-        enabled: true
-        state: started
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Create backup directory
+      file:
+        path: "{{ backup_path }}"
+        state: directory
+        owner: ubuntu
+        mode: '0755'
+
+    - name: Create backup script
+      copy:
+        dest: "{{ backup_path }}/backup.sh"
+        mode: '0755'
+        owner: ubuntu
+        content: |
+          #!/bin/bash
+          set -e
+          DATE=$(date +%Y-%m-%d_%H-%M-%S)
+          FILE="docmost_${DATE}.sql"
+          docker exec docmost-db pg_dump -U {{ docmost_db_user }} {{ docmost_db_name }} > /tmp/$FILE
+          aws s3 cp /tmp/$FILE {{ s3_bucket }}
+          rm /tmp/$FILE
+
+    - name: Configure cron backup
+      cron:
+        name: "Docmost Backup"
+        minute: "0"
+        hour: "2"
+        user: ubuntu
+        job: "{{ backup_path }}/backup.sh >> /home/ubuntu/backup.log 2>&1"
+
+    - name: Deploy application
+      become: false
+      shell: |
+        cd {{ app_path }}
+        docker compose up -d --build
+      args:
+        executable: /bin/bash- hosts: web
+  become: true
+
+  vars:
+    app_path: /home/ubuntu/docmost-wiki/app
+    backup_path: /home/ubuntu/backup
+    branch_name: main
+
+  tasks:
+
+    - name: Install required base packages
+      apt:
+        name:
+          - git
+          - curl
+          - snapd
+        state: present
+        update_cache: yes
+
+    - name: Install Docker using official script
+      shell: |
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sh get-docker.sh
+      args:
+        executable: /bin/bash
+
+    - name: Install Docker Compose plugin
+      apt:
+        name: docker-compose-plugin
+        state: present
+
+    - name: Install AWS CLI via snap
+      snap:
+        name: aws-cli
+        classic: yes
+
+    - name: Clone repository
+      git:
+        repo: "https://github.com/Asopkange/docmost-wiki.git"
+        dest: /home/ubuntu/docmost-wiki
+        version: "{{ branch_name }}"
+        force: yes
+        update: yes
 
     - name: Add ubuntu user to docker group
       user:
