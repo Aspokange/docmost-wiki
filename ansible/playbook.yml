@@ -4,6 +4,7 @@
   vars:
     app_path: /home/ubuntu/docmost-wiki/app
     backup_path: /home/ubuntu/backup
+    branch_name: main   # valeur par défaut (sera écrasée par GitHub)
 
   tasks:
 
@@ -13,8 +14,17 @@
           - docker.io
           - docker-compose-plugin
           - awscli
+          - git
         state: present
         update_cache: yes
+
+    - name: Clone repository
+      git:
+        repo: "https://github.com/Asopkange/docmost-wiki.git"
+        dest: /home/ubuntu/docmost-wiki
+        version: "{{ branch_name }}"
+        force: yes
+        update: yes
 
     - name: Ensure Docker is running
       systemd:
