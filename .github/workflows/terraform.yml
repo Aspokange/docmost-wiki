@@ -77,7 +77,14 @@ jobs:
           ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
             --private-key key.pem \
             -u ubuntu \
-            --extra-vars "docmost_db_user=${{ secrets.DOCMOST_DB_USER }} docmost_db_name=${{ secrets.DOCMOST_DB_NAME }} s3_bucket=s3://docmost-backups-dev-682135518833/ branch_name=dev"
+            --extra-vars "
+              docmost_app_port=${{ secrets.DOCMOST_APP_PORT }}
+              docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
+              docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
+              docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
+              s3_bucket=s3://docmost-backups-dev-682135518833/
+              branch_name=dev
+            "
 
       # ---------------- PROD ---------------
 
@@ -123,4 +130,11 @@ jobs:
           ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
             --private-key key.pem \
             -u ubuntu \
-            --extra-vars "docmost_db_user=${{ secrets.DOCMOST_DB_USER }} docmost_db_name=${{ secrets.DOCMOST_DB_NAME }} s3_bucket=s3://docmost-backups-prod-682135518833/ branch_name=main"
+            --extra-vars "
+              docmost_app_port=${{ secrets.DOCMOST_APP_PORT }}
+              docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
+              docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
+              docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
+              s3_bucket=s3://docmost-backups-prod-682135518833/
+              branch_name=main
+            "
