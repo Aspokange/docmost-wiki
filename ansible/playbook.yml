@@ -103,7 +103,7 @@
     - name: Build containers
       become: false
       shell: |
-        cd {{ app_path }}
+        chdir: "{{ app_path }}/app"
         docker compose build
       args:
         executable: /bin/bash
@@ -111,7 +111,7 @@
     - name: Start containers
       become: false
       shell: |
-        cd {{ app_path }}
+        chdir: "{{ app_path }}/app"
         docker compose up -d
       args:
         executable: /bin/bash
