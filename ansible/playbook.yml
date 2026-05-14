@@ -101,17 +101,11 @@
     # Deployment CI
 
     - name: Build containers
-      become: false
-      shell: |
-        chdir: "{{ app_path }}/app"
-        docker compose build
+      command: docker compose build
       args:
-        executable: /bin/bash
+        chdir: "{{ app_path }}/app"
 
     - name: Start containers
-      become: false
-      shell: |
-        chdir: "{{ app_path }}/app"
-        docker compose up -d
+      command: docker compose up -d
       args:
-        executable: /bin/bash
+        chdir: "{{ app_path }}/app"
