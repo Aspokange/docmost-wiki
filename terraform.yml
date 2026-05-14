@@ -8,6 +8,8 @@ on:
     paths:
       - "infra/**"
       - ".github/workflows/**"
+      - "ansible/**"
+      - "app/**"
   workflow_dispatch:
 
 jobs:
