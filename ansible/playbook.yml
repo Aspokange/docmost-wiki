@@ -58,7 +58,7 @@
 
     - name: Create .env file
       copy:
-        dest: "{{ app_path }}/.env"
+        dest: "{{ app_path }}/app/.env"
         owner: ubuntu
         mode: '0600'
         content: |
