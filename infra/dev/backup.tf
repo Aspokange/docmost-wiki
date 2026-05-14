@@ -1,4 +1,4 @@
-# -------- S3 Bucket --------
+# --------- S3 Bucket ---------
 resource "aws_s3_bucket" "backup" {
   bucket = "docmost-backups-${var.environment}-682135518833"
 
@@ -8,7 +8,7 @@ resource "aws_s3_bucket" "backup" {
   }
 }
 
-# -------- Versioning --------
+# --------- Versioning ---------
 resource "aws_s3_bucket_versioning" "backup_versioning" {
   bucket = aws_s3_bucket.backup.id
 
@@ -17,7 +17,7 @@ resource "aws_s3_bucket_versioning" "backup_versioning" {
   }
 }
 
-# -------- Block Public Access --------
+# --------- Block Public Access ---------
 resource "aws_s3_bucket_public_access_block" "backup_block" {
   bucket = aws_s3_bucket.backup.id
 
@@ -27,7 +27,7 @@ resource "aws_s3_bucket_public_access_block" "backup_block" {
   restrict_public_buckets = true
 }
 
-# -------- Lifecycle Policy --------
+# --------- Lifecycle Policy ---------
 resource "aws_s3_bucket_lifecycle_configuration" "backup_lifecycle" {
   bucket = aws_s3_bucket.backup.id
 
@@ -50,7 +50,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "backup_lifecycle" {
   }
 }
 
-# -------- IAM Role for EC2 --------
+# --------- IAM Role for EC2 ---------
 resource "aws_iam_role" "ec2_role" {
   name = "docmost-ec2-role-${var.environment}"
 
@@ -68,13 +68,13 @@ resource "aws_iam_role" "ec2_role" {
   })
 }
 
-# -------- Instance Profile --------
+# --------- Instance Profile ---------
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "docmost-ec2-profile-${var.environment}"
   role = aws_iam_role.ec2_role.name
 }
 
-# -------- Backup Policy --------
+# --------- Backup Policy ---------
 resource "aws_iam_policy" "backup_policy" {
   name = "docmost-backup-policy-${var.environment}"
 
@@ -96,7 +96,7 @@ resource "aws_iam_policy" "backup_policy" {
   })
 }
 
-# -------- Attach Policy to Role --------
+# --------- Attach Policy to Role ---------
 resource "aws_iam_role_policy_attachment" "backup_attach" {
   role       = aws_iam_role.ec2_role.name
   policy_arn = aws_iam_policy.backup_policy.arn
