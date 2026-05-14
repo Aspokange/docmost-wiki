@@ -82,6 +82,7 @@ jobs:
               docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
               docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
               docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
+              docmost_app_secret=${{ secrets.DOCMOST_APP_SECRET }}
               s3_bucket=s3://docmost-backups-dev-682135518833/
               branch_name=dev
             "
