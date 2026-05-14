@@ -67,6 +67,7 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
             set -e
+
             cd docmost-wiki/app || exit 1
 
             printf "APP_SECRET=%s\nDOCMOST_DB_USER=%s\nDOCMOST_DB_PASSWORD=%s\nDOCMOST_DB_NAME=%s\nDATABASE_URL=%s\nNEXTAUTH_URL=%s\nAPP_URL=%s\nREDIS_URL=%s\nDOCMOST_APP_PORT=%s\n" \
@@ -81,6 +82,23 @@ jobs:
             "$DOCMOST_APP_PORT" > .env
 
             docker compose up -d --build
+
+            # -------- BACKUP SETUP --------
+
+            mkdir -p /home/ubuntu/backup
+
+            echo '#!/bin/bash' > /home/ubuntu/backup/backup.sh
+            echo 'set -e' >> /home/ubuntu/backup/backup.sh
+            echo 'DATE=$(date +%Y-%m-%d_%H-%M-%S)' >> /home/ubuntu/backup/backup.sh
+            echo 'FILE="docmost_${DATE}.sql"' >> /home/ubuntu/backup/backup.sh
+            echo 'docker exec docmost-db pg_dump -U ${DOCMOST_DB_USER} ${DOCMOST_DB_NAME} > /tmp/$FILE' >> /home/ubuntu/backup/backup.sh
+            echo 'aws s3 cp /tmp/$FILE s3://docmost-backups-dev-682135518833/' >> /home/ubuntu/backup/backup.sh
+            echo 'rm /tmp/$FILE' >> /home/ubuntu/backup/backup.sh
+
+            chmod +x /home/ubuntu/backup/backup.sh
+
+            (crontab -l 2>/dev/null | grep -v backup.sh; echo "0 2 * * * /home/ubuntu/backup/backup.sh >> /home/ubuntu/backup.log 2>&1") | crontab -
+
           EOF
 
       # ---------------- PROD ---------------
@@ -119,6 +137,7 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << EOF
             set -e
+
             cd docmost-wiki/app || exit 1
 
             printf "APP_SECRET=%s\nDOCMOST_DB_USER=%s\nDOCMOST_DB_PASSWORD=%s\nDOCMOST_DB_NAME=%s\nDATABASE_URL=%s\nNEXTAUTH_URL=%s\nAPP_URL=%s\nREDIS_URL=%s\nDOCMOST_APP_PORT=%s\n" \
@@ -133,4 +152,21 @@ jobs:
             "$DOCMOST_APP_PORT" > .env
 
             docker compose up -d --build
+
+            # -------- BACKUP SETUP --------
+
+            mkdir -p /home/ubuntu/backup
+
+            echo '#!/bin/bash' > /home/ubuntu/backup/backup.sh
+            echo 'set -e' >> /home/ubuntu/backup/backup.sh
+            echo 'DATE=$(date +%Y-%m-%d_%H-%M-%S)' >> /home/ubuntu/backup/backup.sh
+            echo 'FILE="docmost_${DATE}.sql"' >> /home/ubuntu/backup/backup.sh
+            echo 'docker exec docmost-db pg_dump -U ${DOCMOST_DB_USER} ${DOCMOST_DB_NAME} > /tmp/$FILE' >> /home/ubuntu/backup/backup.sh
+            echo 'aws s3 cp /tmp/$FILE s3://docmost-backups-prod-682135518833/' >> /home/ubuntu/backup/backup.sh
+            echo 'rm /tmp/$FILE' >> /home/ubuntu/backup/backup.sh
+
+            chmod +x /home/ubuntu/backup/backup.sh
+
+            (crontab -l 2>/dev/null | grep -v backup.sh; echo "0 2 * * * /home/ubuntu/backup/backup.sh >> /home/ubuntu/backup.log 2>&1") | crontab -
+
           EOF
