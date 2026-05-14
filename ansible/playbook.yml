@@ -68,6 +68,7 @@
           DOCMOST_DB_NAME={{ docmost_db_name }}
           REDIS_URL=redis://redis:6379
           DATABASE_URL=postgres://{{ docmost_db_user }}:{{ docmost_db_password }}@db:5432/{{ docmost_db_name }}
+          APP_SECRET={{ docmost_app_secret }}
 
     - name: Create backup directory
       file:
