@@ -42,6 +42,16 @@ data "aws_vpc" "default" {
   default = true
 }
 
+# -------- Existing IAM Role --------
+data "aws_iam_role" "docmost_dev_role" {
+  name = "docmost-ec2-role-dev"
+}
+
+resource "aws_iam_instance_profile" "docmost_dev_profile" {
+  name = "docmost-dev-instance-profile"
+  role = data.aws_iam_role.docmost_dev_role.name
+}
+
 # -------- Security Group --------
 resource "aws_security_group" "docmost_sg" {
   name        = "${var.server_name}-sg"
@@ -91,12 +101,10 @@ resource "aws_instance" "docmost" {
   key_name                    = "ci-cd-deploy-dev"
   vpc_security_group_ids      = [aws_security_group.docmost_sg.id]
   associate_public_ip_address = true
+  iam_instance_profile        = aws_iam_instance_profile.docmost_dev_profile.name
   user_data_replace_on_change = true
 
-  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
-
-
-  # IMDSv2 only (sécurité AWS)
+  #  IMDSv2 only (sécurité AWS)
   metadata_options {
     http_tokens = "required"
   }
