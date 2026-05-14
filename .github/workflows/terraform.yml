@@ -8,6 +8,8 @@ on:
     paths:
       - "infra/**"
       - ".github/workflows/**"
+      - "ansible/**"
+      - "app/**"
   workflow_dispatch:
 
 jobs:
@@ -32,6 +34,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       # ---------------- DEV ---------------
+
       - name: Terraform Init Dev
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev init -reconfigure
@@ -48,18 +51,25 @@ jobs:
         if: github.ref == 'refs/heads/dev'
         run: sleep 60
 
-      - name: Deploy to Dev via SSH
+      # -------- ANSIBLE DEV --------
+
+      - name: Create Ansible inventory (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          mkdir -p ansible
+          echo "[web]" > ansible/inventory.ini
+          echo "$(terraform -chdir=infra/dev output -raw public_ip)" >> ansible/inventory.ini
+
+      - name: Install Ansible (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Run Ansible Playbook (Dev)
         if: github.ref == 'refs/heads/dev'
         env:
-          APP_SECRET: ${{ secrets.APP_SECRET }}
-          DOCMOST_DB_USER: ${{ secrets.DOCMOST_DB_USER }}
-          DOCMOST_DB_PASSWORD: ${{ secrets.DOCMOST_DB_PASSWORD }}
-          DOCMOST_DB_NAME: ${{ secrets.DOCMOST_DB_NAME }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          APP_URL: ${{ secrets.APP_URL }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
+          ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
           terraform -chdir=infra/dev init -reconfigure
           terraform -chdir=infra/dev apply -auto-approve
@@ -69,25 +79,21 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) << EOF
-            set -e
-            cd docmost-wiki/app || exit 1
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+            --private-key key.pem \
+            -u ubuntu \
+            --extra-vars "
+              docmost_app_port=${{ secrets.DOCMOST_APP_PORT }}
+              docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
+              docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
+              docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
+              docmost_app_secret=${{ secrets.APP_SECRET }}
+              s3_bucket=s3://docmost-backups-dev-682135518833/
+              branch_name=dev
+            "
 
-            printf "APP_SECRET=%s\nDOCMOST_DB_USER=%s\nDOCMOST_DB_PASSWORD=%s\nDOCMOST_DB_NAME=%s\nDATABASE_URL=%s\nNEXTAUTH_URL=%s\nAPP_URL=%s\nREDIS_URL=%s\nDOCMOST_APP_PORT=%s\n" \
-            "$APP_SECRET" \
-            "$DOCMOST_DB_USER" \
-            "$DOCMOST_DB_PASSWORD" \
-            "$DOCMOST_DB_NAME" \
-            "$DATABASE_URL" \
-            "$NEXTAUTH_URL" \
-            "$APP_URL" \
-            "$REDIS_URL" \
-            "$DOCMOST_APP_PORT" > .env
+      # ---------------- PROD ---------------
 
-            docker compose up -d --build
-          EOF
-
-      # ---------------- Prod ---------------
       - name: Terraform Init Prod
         if: github.ref == 'refs/heads/main'
         run: terraform -chdir=infra/prod init -reconfigure
@@ -104,18 +110,25 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: sleep 60
 
-      - name: Deploy to Prod via SSH
+      # -------- ANSIBLE PROD --------
+
+      - name: Create Ansible inventory (Prod)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p ansible
+          echo "[web]" > ansible/inventory.ini
+          echo "$(terraform -chdir=infra/prod output -raw public_ip)" >> ansible/inventory.ini
+
+      - name: Install Ansible (Prod)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Run Ansible Playbook (Prod)
         if: github.ref == 'refs/heads/main'
         env:
-          APP_SECRET: ${{ secrets.APP_SECRET }}
-          DOCMOST_DB_USER: ${{ secrets.DOCMOST_DB_USER }}
-          DOCMOST_DB_PASSWORD: ${{ secrets.DOCMOST_DB_PASSWORD }}
-          DOCMOST_DB_NAME: ${{ secrets.DOCMOST_DB_NAME }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          APP_URL: ${{ secrets.APP_URL }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          DOCMOST_APP_PORT: ${{ secrets.DOCMOST_APP_PORT }}
+          ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
           terraform -chdir=infra/prod init -reconfigure
           terraform -chdir=infra/prod apply -auto-approve
@@ -125,20 +138,15 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY_PROD }}" > key.pem
           chmod 600 key.pem
 
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/prod output -raw public_ip) << EOF
-            set -e
-            cd docmost-wiki/app || exit 1
-
-            printf "APP_SECRET=%s\nDOCMOST_DB_USER=%s\nDOCMOST_DB_PASSWORD=%s\nDOCMOST_DB_NAME=%s\nDATABASE_URL=%s\nNEXTAUTH_URL=%s\nAPP_URL=%s\nREDIS_URL=%s\nDOCMOST_APP_PORT=%s\n" \
-            "$APP_SECRET" \
-            "$DOCMOST_DB_USER" \
-            "$DOCMOST_DB_PASSWORD" \
-            "$DOCMOST_DB_NAME" \
-            "$DATABASE_URL" \
-            "$NEXTAUTH_URL" \
-            "$APP_URL" \
-            "$REDIS_URL" \
-            "$DOCMOST_APP_PORT" > .env
-
-            docker compose up -d --build
-          EOF
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+            --private-key key.pem \
+            -u ubuntu \
+            --extra-vars "
+              docmost_app_port=${{ secrets.DOCMOST_APP_PORT }}
+              docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
+              docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
+              docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
+              docmost_app_secret=${{ secrets.APP_SECRET }}
+              s3_bucket=s3://docmost-backups-prod-682135518833/
+              branch_name=main
+            "
