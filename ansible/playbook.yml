@@ -2,7 +2,7 @@
   become: true
 
   vars:
-    app_path: /home/ubuntu/docmost-wiki/app
+    app_path: /home/ubuntu/docmost-wiki
     backup_path: /home/ubuntu/backup
     branch_name: main
 
@@ -14,6 +14,7 @@
           - git
           - curl
           - snapd
+          - ca-certificates
         state: present
         update_cache: yes
 
@@ -37,7 +38,7 @@
     - name: Clone repository
       git:
         repo: "https://github.com/Asopkange/docmost-wiki.git"
-        dest: /home/ubuntu/docmost-wiki
+        dest: "{{ app_path }}"
         version: "{{ branch_name }}"
         force: yes
         update: yes
@@ -47,6 +48,21 @@
         name: ubuntu
         groups: docker
         append: yes
+
+    # Create file .env for docker-compose
+
+    - name: Create .env file
+      copy:
+        dest: "{{ app_path }}/.env"
+        owner: ubuntu
+        mode: '0600'
+        content: |
+          DOCMOST_APP_PORT={{ docmost_app_port }}
+          DOCMOST_DB_USER={{ docmost_db_user }}
+          DOCMOST_DB_PASSWORD={{ docmost_db_password }}
+          DOCMOST_DB_NAME={{ docmost_db_name }}
+          REDIS_URL=redis://redis:6379
+          DATABASE_URL=postgres://{{ docmost_db_user }}:{{ docmost_db_password }}@db:5432/{{ docmost_db_name }}
 
     - name: Create backup directory
       file:
@@ -77,10 +93,20 @@
         user: ubuntu
         job: "{{ backup_path }}/backup.sh >> /home/ubuntu/backup.log 2>&1"
 
-    - name: Deploy application
+    # Deployment CI
+
+    - name: Build containers
       become: false
       shell: |
         cd {{ app_path }}
-        docker compose up -d --build
+        docker compose build
+      args:
+        executable: /bin/bash
+
+    - name: Start containers
+      become: false
+      shell: |
+        cd {{ app_path }}
+        docker compose up -d
       args:
         executable: /bin/bash
