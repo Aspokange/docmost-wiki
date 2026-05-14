@@ -13,10 +13,14 @@
         name:
           - docker.io
           - docker-compose-plugin
-          - awscli
           - git
         state: present
         update_cache: yes
+
+    - name: Install AWS CLI via snap
+      snap:
+        name: aws-cli
+        classic: yes
 
     - name: Clone repository
       git:
