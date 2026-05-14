@@ -42,7 +42,7 @@
 
     - name: Clone repository
       git:
-        repo: "https://github.com/Asopkange/docmost-wiki.git"
+        repo: "https://github.com/Aspokange/docmost-wiki.git"
         dest: "{{ app_path }}"
         version: "{{ branch_name }}"
         force: yes
