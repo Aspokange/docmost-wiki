@@ -17,6 +17,39 @@ resource "aws_s3_bucket_versioning" "backup_versioning" {
   }
 }
 
+# -------- Block Public Access --------
+resource "aws_s3_bucket_public_access_block" "backup_block" {
+  bucket = aws_s3_bucket.backup.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# -------- Lifecycle Policy --------
+resource "aws_s3_bucket_lifecycle_configuration" "backup_lifecycle" {
+  bucket = aws_s3_bucket.backup.id
+
+  rule {
+    id     = "backup-retention"
+    status = "Enabled"
+
+    filter {}
+
+    # Move to Glacier after 30 days
+    transition {
+      days          = 30
+      storage_class = "GLACIER"
+    }
+
+    # Delete after 90 days
+    expiration {
+      days = 90
+    }
+  }
+}
+
 # -------- IAM Role for EC2 --------
 resource "aws_iam_role" "ec2_role" {
   name = "docmost-ec2-role-${var.environment}"
