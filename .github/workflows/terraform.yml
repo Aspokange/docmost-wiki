@@ -45,9 +45,7 @@ jobs:
 
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
-        run: |
-          terraform -chdir=infra/dev state rm aws_instance.docmost || true
-          terraform -chdir=infra/dev apply -auto-approve
+        run: terraform -chdir=infra/dev apply -auto-approve
 
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
@@ -119,12 +117,7 @@ jobs:
 
       - name: Terraform Apply Prod
         if: github.ref == 'refs/heads/main'
-        run: |
-          terraform -chdir=infra/dev state rm aws_instance.docmost || true
-          terraform -chdir=infra/dev apply -auto-approve
-
- # -à rétablir run: terraform -chdir=infra/prod apply -auto-approve
-
+        run: terraform -chdir=infra/prod apply -auto-approve
 
       - name: Wait for SSH (Prod)
         if: github.ref == 'refs/heads/main'
