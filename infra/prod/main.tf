@@ -76,6 +76,13 @@ resource "aws_security_group" "docmost_sg" {
   }
 
   ingress {
+    description = "Custom TCP"
+    from_port   = 90
+    to_port     = 90
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  
+  ingress {
     description = "HTTPS"
     from_port   = 443
     to_port     = 443
