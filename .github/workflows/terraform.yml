@@ -163,6 +163,3 @@ jobs:
               s3_bucket=s3://docmost-backups-prod-682135518833-v2/
               branch_name=main
             "
-
-
-    # -------- ANSIBLE PROD --------
