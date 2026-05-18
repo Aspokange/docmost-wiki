@@ -101,7 +101,7 @@ jobs:
               smtp_from=${{ secrets.SMTP_FROM }}
               smtp_username=${{ secrets.SMTP_USERNAME }}
               smtp_password=${{ secrets.SMTP_PASSWORD }}
-              s3_bucket=s3://docmost-backups-dev-682135518833/
+              s3_bucket=s3://docmost-backups-dev-682135518833-v2/
               branch_name=dev
             "
 
@@ -160,6 +160,6 @@ jobs:
               smtp_from=${{ secrets.SMTP_FROM }}
               smtp_username=${{ secrets.SMTP_USERNAME }}
               smtp_password=${{ secrets.SMTP_PASSWORD }}
-              s3_bucket=s3://docmost-backups-prod-682135518833/
+              s3_bucket=s3://docmost-backups-prod-682135518833-v2/
               branch_name=main
             "
