@@ -193,5 +193,6 @@
       command: docker ps
       register: docker_output
 
-    - debug:
-      var: docker_output.stdout
+    - name: Show running containers
+      debug:
+        var: docker_output.stdout
