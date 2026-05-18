@@ -40,8 +40,8 @@ jobs:
         run: terraform -chdir=infra/dev init
 
       - name: Terraform Plan Dev
-       if: github.ref == 'refs/heads/dev'
-       run: terraform -chdir=infra/dev plan -no-color || true
+        if: github.ref == 'refs/heads/dev'
+        run: terraform -chdir=infra/dev plan -no-color || true
 
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
@@ -112,8 +112,8 @@ jobs:
         run: terraform -chdir=infra/prod init
 
       - name: Terraform Plan Prod
-       if: github.ref == 'refs/heads/main'
-       run: terraform -chdir=infra/prod plan -no-color || true
+        if: github.ref == 'refs/heads/main'
+        run: terraform -chdir=infra/prod plan -no-color || true
 
       - name: Terraform Apply Prod
         if: github.ref == 'refs/heads/main'
