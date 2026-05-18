@@ -186,3 +186,13 @@
       command: docker compose up -d
       args:
         chdir: "{{ app_path }}/app"
+
+    - name: Show running containers
+      command: docker ps
+      register: docker_output
+
+    - debug:
+      var: docker_output.stdout
+
+- debug:
+    var: docker_output.stdout
