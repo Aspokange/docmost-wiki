@@ -45,7 +45,9 @@ jobs:
 
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra/dev apply -auto-approve
+        run: |
+          terraform -chdir=infra/dev state rm aws_instance.docmost || true
+          terraform -chdir=infra/dev apply -auto-approve
 
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
