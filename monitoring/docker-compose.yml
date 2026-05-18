@@ -41,9 +41,10 @@ services:
     env_file:
       - .env
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
+    - ./grafana/provisioning:/etc/grafana/provisioning
+    - ./grafana/dashboards:/var/lib/grafana/dashboards
     ports:
-      - "127.0.0.1:90:3000"
+      - "90:3000"
 
   blackbox-exporter:
     image: prom/blackbox-exporter:latest
