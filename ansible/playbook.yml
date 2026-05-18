@@ -124,12 +124,26 @@
         blackbox_target: "http://{{ ansible_host }}:{{ docmost_app_port }}"
       when: branch_name == "main"
 
+    - name: Ensure Prometheus directory exists
+      file:
+        path: "{{ monitoring_path }}/prometheus"
+        state: directory
+        owner: ubuntu
+        mode: '0755'
+
     - name: Deploy prometheus config
       template:
         src: templates/prometheus.yml.j2
         dest: "{{ monitoring_path }}/prometheus/prometheus.yml"
         owner: ubuntu
         mode: '0644'
+
+    - name: Ensure alert rules directory exists
+      file:
+        path: "{{ monitoring_path }}/prometheus"
+        state: directory
+        owner: ubuntu
+        mode: '0755'
 
     - name: Deploy alert rules
       copy:
