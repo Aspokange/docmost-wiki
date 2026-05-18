@@ -38,9 +38,9 @@ data "aws_vpc" "default" {
   default = true
 }
 
-# -------- Existing IAM Role --------
+# -------- IAM Role (créé par Terraform) --------
 resource "aws_iam_role" "docmost_dev_role" {
-  name = "docmost-ec2-role-dev"
+  name = "docmost-ec2-role-dev-v2"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -57,7 +57,7 @@ resource "aws_iam_role" "docmost_dev_role" {
 }
 
 resource "aws_iam_instance_profile" "docmost_dev_profile" {
-  name = "docmost-dev-instance-profile"
+  name = "docmost-dev-instance-profile-v2"
   role = aws_iam_role.docmost_dev_role.name
 }
 
