@@ -23,12 +23,14 @@
         state: present
         update_cache: yes
 
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_check
+      ignore_errors: yes
+    
     - name: Install Docker using official script
-      shell: |
-        curl -fsSL https://get.docker.com -o get-docker.sh
-        sh get-docker.sh
-      args:
-        executable: /bin/bash
+      shell: curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+      when: docker_check.rc != 0
 
     - name: Wait for SSH to come back
       wait_for_connection:
