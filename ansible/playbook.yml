@@ -5,8 +5,13 @@
     app_path: /home/ubuntu/docmost-wiki
     backup_path: /home/ubuntu/backup
     branch_name: main
+    monitoring_path: /home/ubuntu/docmost-wiki/monitoring
 
   tasks:
+
+    # ============================================================
+    # SYSTEM BASE SETUP
+    # ============================================================
 
     - name: Install required base packages
       apt:
@@ -40,6 +45,10 @@
         name: aws-cli
         classic: yes
 
+    # ============================================================
+    # APPLICATION DEPLOYMENT
+    # ============================================================
+
     - name: Clone repository
       git:
         repo: "https://github.com/Aspokange/docmost-wiki.git"
@@ -54,8 +63,6 @@
         groups: docker
         append: yes
 
-    # Create file .env for docker-compose
-
     - name: Create .env file
       copy:
         dest: "{{ app_path }}/app/.env"
@@ -69,6 +76,10 @@
           REDIS_URL=redis://redis:6379
           DATABASE_URL=postgres://{{ docmost_db_user }}:{{ docmost_db_password }}@db:5432/{{ docmost_db_name }}
           APP_SECRET={{ docmost_app_secret }}
+
+    # ============================================================
+    # BACKUP CONFIGURATION
+    # ============================================================
 
     - name: Create backup directory
       file:
@@ -99,7 +110,51 @@
         user: ubuntu
         job: "{{ backup_path }}/backup.sh >> /home/ubuntu/backup.log 2>&1"
 
-    # Deployment CI
+    # ============================================================
+    # MONITORING STACK (Prometheus / Alertmanager / Grafana)
+    # ============================================================
+
+    - name: Set blackbox target for DEV
+      set_fact:
+        blackbox_target: "http://{{ ansible_host }}:{{ docmost_app_port }}"
+      when: branch_name == "dev"
+
+    - name: Set blackbox target for PROD
+      set_fact:
+        blackbox_target: "http://{{ ansible_host }}:{{ docmost_app_port }}"
+      when: branch_name == "main"
+
+    - name: Deploy prometheus config
+      template:
+        src: "{{ app_path }}/monitoring/prometheus/prometheus.yml.j2"
+        dest: "{{ monitoring_path }}/prometheus/prometheus.yml"
+        owner: ubuntu
+        mode: '0644'
+
+    - name: Create monitoring .env file
+      copy:
+        dest: "{{ monitoring_path }}/.env"
+        owner: ubuntu
+        mode: '0600'
+        content: |
+          SMTP_SMARTHOST={{ smtp_smarthost }}
+          SMTP_FROM={{ smtp_from }}
+          SMTP_USERNAME={{ smtp_username }}
+          SMTP_PASSWORD={{ smtp_password }}
+
+    - name: Build monitoring containers
+      command: docker compose build
+      args:
+        chdir: "{{ monitoring_path }}"
+
+    - name: Start monitoring containers
+      command: docker compose up -d
+      args:
+        chdir: "{{ monitoring_path }}"
+
+    # ============================================================
+    # APPLICATION CONTAINERS START
+    # ============================================================
 
     - name: Build containers
       command: docker compose build

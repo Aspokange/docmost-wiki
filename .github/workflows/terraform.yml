@@ -83,6 +83,10 @@ jobs:
               docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
               docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
               docmost_app_secret=${{ secrets.APP_SECRET }}
+              smtp_smarthost=${{ secrets.SMTP_SMARTHOST }}
+              smtp_from=${{ secrets.SMTP_FROM }}
+              smtp_username=${{ secrets.SMTP_USERNAME }}
+              smtp_password=${{ secrets.SMTP_PASSWORD }}
               s3_bucket=s3://docmost-backups-dev-682135518833/
               branch_name=dev
             "
@@ -137,6 +141,10 @@ jobs:
               docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
               docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
               docmost_app_secret=${{ secrets.APP_SECRET }}
+              smtp_smarthost=${{ secrets.SMTP_SMARTHOST }}
+              smtp_from=${{ secrets.SMTP_FROM }}
+              smtp_username=${{ secrets.SMTP_USERNAME }}
+              smtp_password=${{ secrets.SMTP_PASSWORD }}
               s3_bucket=s3://docmost-backups-prod-682135518833/
               branch_name=main
             "
