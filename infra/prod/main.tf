@@ -81,6 +81,7 @@ resource "aws_security_group" "docmost_sg" {
     to_port     = 90
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
   
   ingress {
     description = "HTTPS"
@@ -120,6 +121,12 @@ resource "aws_instance" "docmost" {
   iam_instance_profile        = aws_iam_instance_profile.docmost_prod_profile.name
   user_data_replace_on_change = true
 
+  root_block_device {
+  volume_size = 30
+  volume_type = "gp3"
+}
+
+#  IMDSv2 only (sécurité AWS)  
   metadata_options {
     http_tokens = "required"
   }
