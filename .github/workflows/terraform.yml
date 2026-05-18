@@ -47,6 +47,16 @@ jobs:
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev apply -auto-approve
 
+      - name: Get public IP
+        id: tf_output
+        run: |
+          echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+      
+      - name: Create Ansible inventory
+        run: |
+          echo "[web]" > ansible/inventory.ini
+          echo "${PUBLIC_IP} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa" >> ansible/inventory.ini
+
       - name: Wait for SSH (Dev)
         if: github.ref == 'refs/heads/dev'
         run: sleep 60
