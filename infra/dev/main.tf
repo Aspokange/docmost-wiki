@@ -39,13 +39,26 @@ data "aws_vpc" "default" {
 }
 
 # -------- Existing IAM Role --------
-data "aws_iam_role" "docmost_dev_role" {
+resource "aws_iam_role" "docmost_dev_role" {
   name = "docmost-ec2-role-dev"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_iam_instance_profile" "docmost_dev_profile" {
   name = "docmost-dev-instance-profile"
-  role = data.aws_iam_role.docmost_dev_role.name
+  role = aws_iam_role.docmost_dev_role.name
 }
 
 # -------- Security Group --------

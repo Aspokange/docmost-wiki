@@ -38,14 +38,27 @@ data "aws_vpc" "default" {
   default = true
 }
 
-# -------- Existing IAM Role --------
-data "aws_iam_role" "docmost_prod_role" {
+# -------- IAM Role (créé par Terraform) --------
+resource "aws_iam_role" "docmost_prod_role" {
   name = "docmost-ec2-role-prod"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_iam_instance_profile" "docmost_prod_profile" {
   name = "docmost-prod-instance-profile"
-  role = data.aws_iam_role.docmost_prod_role.name
+  role = aws_iam_role.docmost_prod_role.name
 }
 
 # -------- Security Group --------
@@ -100,7 +113,6 @@ resource "aws_instance" "docmost" {
   iam_instance_profile        = aws_iam_instance_profile.docmost_prod_profile.name
   user_data_replace_on_change = true
 
-  # 🔐 IMDSv2 only (sécurité AWS)
   metadata_options {
     http_tokens = "required"
   }
@@ -109,34 +121,28 @@ resource "aws_instance" "docmost" {
 #!/bin/bash
 set -e
 
-# Update system
 apt update -y
 apt install -y ca-certificates curl gnupg git
 
-# Add Docker official GPG key
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
   gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
 chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Add Docker repository
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
   https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Install Docker Engine + Compose v2
 apt update -y
 apt install -y docker-ce docker-ce-cli containerd.io \
   docker-buildx-plugin docker-compose-plugin
 
-# Enable and start Docker
 systemctl enable docker
 systemctl start docker
 
-# Allow ubuntu user to run docker
 usermod -aG docker ubuntu
 
 EOF
