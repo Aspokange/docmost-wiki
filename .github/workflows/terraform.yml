@@ -130,7 +130,7 @@ jobs:
         run: |
           mkdir -p ansible
           echo "[web]" > ansible/inventory.ini
-          echo "$(terraform -chdir=infra/prod output -raw public_ip)" >> ansible/inventory.ini
+          echo "$(terraform -chdir=infra/prod output -raw public_ip) ansible_user=ubuntu" >> ansible/inventory.ini
 
       - name: Install Ansible (Prod)
         if: github.ref == 'refs/heads/main'
@@ -149,6 +149,7 @@ jobs:
           ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
             --private-key key.pem \
             -u ubuntu \
+            --ssh-extra-args='-o ConnectTimeout=30' \
             --extra-vars "
               docmost_app_port=${{ secrets.DOCMOST_APP_PORT }}
               docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
