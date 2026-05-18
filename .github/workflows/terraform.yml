@@ -10,6 +10,7 @@ on:
       - ".github/workflows/**"
       - "ansible/**"
       - "app/**"
+      - "monitoring/**"
   workflow_dispatch:
 
 jobs:
