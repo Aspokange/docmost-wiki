@@ -66,6 +66,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ansible
 
+      - name: Debug inventory (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "=== INVENTORY CONTENT ==="
+          cat ansible/inventory.ini
+
+      - name: Test SSH manually (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) "echo SSH OK"
+
       - name: Run Ansible Playbook (Dev)
         if: github.ref == 'refs/heads/dev'
         env:
