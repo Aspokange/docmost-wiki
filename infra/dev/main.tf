@@ -95,13 +95,13 @@ resource "aws_security_group" "docmost_sg" {
 # or behind a reverse proxy / private network.
 
   ingress {
-    description = "Custom TCP"
+    description = "Temporary public access to Grafana"
     from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
 # END TEMPORARY RULE
 
   ingress {
