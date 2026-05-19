@@ -1,6 +1,6 @@
 # --------- S3 Bucket ---------
 resource "aws_s3_bucket" "backup" {
-  bucket = "docmost-backups-${var.environment}-682135518833"
+  bucket = "docmost-backups-${var.environment}-682135518833-v2"
 
   tags = {
     Name        = "Docmost Backup ${var.environment}"

@@ -10,6 +10,7 @@ on:
       - ".github/workflows/**"
       - "ansible/**"
       - "app/**"
+      - "monitoring/**"
   workflow_dispatch:
 
 jobs:
@@ -41,7 +42,7 @@ jobs:
 
       - name: Terraform Plan Dev
         if: github.ref == 'refs/heads/dev'
-        run: terraform -chdir=infra/dev plan
+        run: terraform -chdir=infra/dev plan -no-color || true
 
       - name: Terraform Apply Dev
         if: github.ref == 'refs/heads/dev'
@@ -58,13 +59,26 @@ jobs:
         run: |
           mkdir -p ansible
           echo "[web]" > ansible/inventory.ini
-          echo "$(terraform -chdir=infra/dev output -raw public_ip)" >> ansible/inventory.ini
+          echo "$(terraform -chdir=infra/dev output -raw public_ip) ansible_user=ubuntu" >> ansible/inventory.ini
 
       - name: Install Ansible (Dev)
         if: github.ref == 'refs/heads/dev'
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible
+
+      - name: Debug inventory (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "=== INVENTORY CONTENT ==="
+          cat ansible/inventory.ini
+
+      - name: Test SSH manually (Dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_DEV }}" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$(terraform -chdir=infra/dev output -raw public_ip) "echo SSH OK"
 
       - name: Run Ansible Playbook (Dev)
         if: github.ref == 'refs/heads/dev'
@@ -82,13 +96,18 @@ jobs:
           ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
             --private-key key.pem \
             -u ubuntu \
+            --ssh-extra-args='-o ConnectTimeout=30' \
             --extra-vars "
               docmost_app_port=${{ secrets.DOCMOST_APP_PORT }}
               docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
               docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
               docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
               docmost_app_secret=${{ secrets.APP_SECRET }}
-              s3_bucket=s3://docmost-backups-dev-682135518833/
+              smtp_smarthost=${{ secrets.SMTP_SMARTHOST }}
+              smtp_from=${{ secrets.SMTP_FROM }}
+              smtp_username=${{ secrets.SMTP_USERNAME }}
+              smtp_password=${{ secrets.SMTP_PASSWORD }}
+              s3_bucket=s3://docmost-backups-dev-682135518833-v2/
               branch_name=dev
             "
 
@@ -100,7 +119,7 @@ jobs:
 
       - name: Terraform Plan Prod
         if: github.ref == 'refs/heads/main'
-        run: terraform -chdir=infra/prod plan
+        run: terraform -chdir=infra/prod plan -no-color || true
 
       - name: Terraform Apply Prod
         if: github.ref == 'refs/heads/main'
@@ -117,7 +136,7 @@ jobs:
         run: |
           mkdir -p ansible
           echo "[web]" > ansible/inventory.ini
-          echo "$(terraform -chdir=infra/prod output -raw public_ip)" >> ansible/inventory.ini
+          echo "$(terraform -chdir=infra/prod output -raw public_ip) ansible_user=ubuntu" >> ansible/inventory.ini
 
       - name: Install Ansible (Prod)
         if: github.ref == 'refs/heads/main'
@@ -141,12 +160,17 @@ jobs:
           ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
             --private-key key.pem \
             -u ubuntu \
+            --ssh-extra-args='-o ConnectTimeout=30' \
             --extra-vars "
               docmost_app_port=${{ secrets.DOCMOST_APP_PORT }}
               docmost_db_user=${{ secrets.DOCMOST_DB_USER }}
               docmost_db_password=${{ secrets.DOCMOST_DB_PASSWORD }}
               docmost_db_name=${{ secrets.DOCMOST_DB_NAME }}
               docmost_app_secret=${{ secrets.APP_SECRET }}
-              s3_bucket=s3://docmost-backups-prod-682135518833/
+              smtp_smarthost=${{ secrets.SMTP_SMARTHOST }}
+              smtp_from=${{ secrets.SMTP_FROM }}
+              smtp_username=${{ secrets.SMTP_USERNAME }}
+              smtp_password=${{ secrets.SMTP_PASSWORD }}
+              s3_bucket=s3://docmost-backups-prod-682135518833-v2/
               branch_name=main
             "

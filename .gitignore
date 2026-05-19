@@ -8,3 +8,4 @@ terraform.tfvars
 # Environment files
 .env
 app/.env
+monitoring/.env
