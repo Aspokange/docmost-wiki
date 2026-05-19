@@ -61,6 +61,12 @@ resource "aws_iam_instance_profile" "docmost_dev_profile" {
   role = aws_iam_role.docmost_dev_role.name
 }
 
+# -------- Attach CloudWatch Policy --------
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policy" {
+  role       = aws_iam_role.docmost_dev_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 # -------- Security Group --------
 resource "aws_security_group" "docmost_sg" {
   name        = "${var.server_name}-sg"
