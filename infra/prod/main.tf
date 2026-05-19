@@ -61,6 +61,12 @@ resource "aws_iam_instance_profile" "docmost_prod_profile" {
   role = aws_iam_role.docmost_prod_role.name
 }
 
+# -------- Attach CloudWatch Policy --------
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policy" {
+  role       = aws_iam_role.docmost_dev_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 # -------- Security Group --------
 resource "aws_security_group" "docmost_sg" {
   name        = "${var.server_name}-sg"
@@ -83,6 +89,21 @@ resource "aws_security_group" "docmost_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
+  # TEMPORARY RULE
+# Allows direct public access to Grafana (port 9090).
+# This rule must be removed once monitoring is isolated on a dedicated instance
+# or behind a reverse proxy / private network.
+
+  ingress {
+    description = "Temporary public access to Grafana"
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+# END TEMPORARY RULE
+
   ingress {
     description = "HTTPS"
     from_port   = 443

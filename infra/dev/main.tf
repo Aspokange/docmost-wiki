@@ -88,7 +88,22 @@ resource "aws_security_group" "docmost_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+# TEMPORARY RULE
+# Allows direct public access to Grafana (port 9090).
+# This rule must be removed once monitoring is isolated on a dedicated instance
+# or behind a reverse proxy / private network.
+
+  ingress {
+    description = "Custom TCP"
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   
+# END TEMPORARY RULE
+
   ingress {
     description = "HTTPS"
     from_port   = 443
