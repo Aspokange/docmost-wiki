@@ -67,6 +67,18 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policy" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
+# Attach CloudWatch Read Only (pour Grafana)
+resource "aws_iam_role_policy_attachment" "cloudwatch_readonly_policy" {
+  role       = aws_iam_role.docmost_dev_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"
+}
+
+# Attach EC2 Read Only (pour récupérer InstanceId)
+resource "aws_iam_role_policy_attachment" "ec2_readonly_policy" {
+  role       = aws_iam_role.docmost_dev_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+}
+
 # -------- Security Group --------
 resource "aws_security_group" "docmost_sg" {
   name        = "${var.server_name}-sg"
