@@ -51,7 +51,7 @@ jobs:
         run: terraform -chdir=infra/dev init
 
       # Continue pipeline even if plan detects changes (no blocking)
-        - name: Terraform Plan Dev
+      - name: Terraform Plan Dev
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev plan -no-color || true
 
