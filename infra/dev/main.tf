@@ -55,7 +55,76 @@ resource "aws_iam_role" "docmost_dev_role" {
     ]
   })
 }
+# -------- IAM Role (créé par Terraform) --------
+resource "aws_iam_role" "docmost_prod_role" {
+  name = "docmost-ec2-role-prod-v2"
 
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "docmost_prod_profile" {
+  name = "docmost-prod-instance-profile-v2"
+  role = aws_iam_role.docmost_prod_role.name
+}
+
+# -------- S3 Backup Access (Docmost Prod) --------
+resource "aws_iam_role_policy" "docmost_s3_backup_policy" {
+  name = "docmost-backup-s3-policy"
+  role = aws_iam_role.docmost_prod_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::docmost-backups-prod-682135518833-v2",
+          "arn:aws:s3:::docmost-backups-prod-682135518833-v2/*"
+        ]
+      }
+    ]
+  })
+}
+
+# -------- Attach CloudWatch Policy --------
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policy" {
+  role       = aws_iam_role.docmost_prod_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+# Attach CloudWatch Read Only (pour Grafana)
+resource "aws_iam_role_policy_attachment" "cloudwatch_readonly_policy" {
+  role       = aws_iam_role.docmost_prod_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"
+}
+
+# Attach EC2 Read Only (pour récupérer InstanceId)
+resource "aws_iam_role_policy_attachment" "ec2_readonly_policy" {
+  role       = aws_iam_role.docmost_prod_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+}
+
+# -------- Security Group --------
+resource "aws_security_group" "docmost_sg" {
+  name        = "${var.server_name}-sg"
+  description = "Allow HTTP, HTTPS and SSH"
+  vpc_id      = data.aws_vpc.default.id
 resource "aws_iam_instance_profile" "docmost_dev_profile" {
   name = "docmost-dev-instance-profile-v2"
   role = aws_iam_role.docmost_dev_role.name
