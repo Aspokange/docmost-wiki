@@ -1,5 +1,12 @@
 name: Terraform Infrastructure
 
+    # ==========================================
+    # Terraform Infrastructure CI/CD Pipeline
+    # This workflow provisions infrastructure
+    # and configures servers via Ansible.
+    # Environments: dev and prod
+    # ==========================================
+
 on:
   push:
     branches:
@@ -25,6 +32,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Authenticate to AWS using OIDC (no static keys)
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -35,11 +44,13 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       # ---------------- DEV ---------------
+      # DEV environment deployment
 
       - name: Terraform Init Dev
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev init -reconfigure
 
+      # Continue pipeline even if plan detects changes (no blocking)
       - name: Terraform Plan Dev
         if: github.ref == 'refs/heads/dev'
         run: terraform -chdir=infra/dev plan -no-color || true
@@ -112,6 +123,7 @@ jobs:
             "
 
       # ---------------- PROD ---------------
+      # PROD environment deployment
 
       - name: Terraform Init Prod
         if: github.ref == 'refs/heads/main'

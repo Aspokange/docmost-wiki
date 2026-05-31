@@ -65,6 +65,30 @@ resource "aws_iam_instance_profile" "docmost_prod_profile" {
   role = aws_iam_role.docmost_prod_role.name
 }
 
+# -------- S3 Backup Access (Docmost Prod) --------
+resource "aws_iam_role_policy" "docmost_s3_backup_policy" {
+  name = "docmost-backup-s3-policy"
+  role = aws_iam_role.docmost_prod_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::docmost-backups-prod-682135518833-v2",
+          "arn:aws:s3:::docmost-backups-prod-682135518833-v2/*"
+        ]
+      }
+    ]
+  })
+}
+
 # -------- Attach CloudWatch Policy --------
 resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policy" {
   role       = aws_iam_role.docmost_prod_role.name
